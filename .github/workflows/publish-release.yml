@@ -3,7 +3,11 @@ name: Publish release
 on:
   pull_request_target:
     branches:
+<<<<<<< HEAD
       - master
+=======
+      - release/*
+>>>>>>> 0c6d393 (feat: release automation)
     types:
       - closed
   workflow_dispatch:
