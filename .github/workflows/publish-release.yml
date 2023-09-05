@@ -1,0 +1,108 @@
+name: Publish release
+
+on:
+  pull_request_target:
+    branches:
+      - master
+    types:
+      - closed
+  workflow_dispatch:
+
+jobs:
+  publish:
+    if: github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.version }}
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.merge_commit_sha }}
+        fetch-depth: 0
+        fetch-tags: true
+    
+    - name: Output
+      run: |
+        echo ${{ github.event.pull_request }}
+
+    - name: Tag release
+      run: |
+        # Set up github-actions[bot] user
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+        # Get the version from the branch name
+        branch="${{ github.event.pull_request.head.ref }}"
+        version="${branch#release/v}"
+
+        # Tag and create release
+        git tag -a "v${version}" -m "Release v${version}"
+        echo "version=v${version}" >> "$GITHUB_OUTPUT
+      id: tag
+    
+    - name: Set up go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.19
+    
+    - name: Build Artifacts
+      run: make release
+    
+    # Upload artifacts in case of workflow failure
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: oauth2-proxy-artifacts
+        path: release/*.[tar.gz|txt]
+
+    - name: Create release
+      run: |
+        # Get version from tag
+        version=$(git describe --tags --abbrev=0)
+
+        # Publish release tag
+        git push origin "v${version}"
+
+        # Create github release
+        gh release create "${version}" \
+          --title "${version}" \
+          --generate-notes \
+          --prerelease
+        
+        # Upload artifacts
+        gh release upload "${version}" release/*.[tar.gz|txt] --clobber
+  
+  docker:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ needs.publish.outputs.tag }}
+        fetch-depth: 0
+        fetch-tags: true
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    
+    - name: Set up Docker Buildx
+      id: buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Docker
+      run: |
+        make docker-all
+        TAGS=$(docker images --format '{{.Tag}}' | tr '\n' ' ')
+        echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
+      id: images
+    
+    - name: Push docker images to quay.io
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: release-testing
+        tags: ${{ steps.images.outputs.tags }}
+        registry: quay.io/tuunit
+        username: ${{ secrets.REGISTRY_USERNAME }}
+        password: ${{ secrets.REGISTRY_PASSWORD }}
