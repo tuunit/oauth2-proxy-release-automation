@@ -4,6 +4,12 @@
 
 ## Important Notes
 
+## Breaking Changes\n\n# V7.5.0
+
+## Release Highlights
+
+## Important Notes
+
 ## Breaking Changes
 
 ## Changes since v7.4.0
