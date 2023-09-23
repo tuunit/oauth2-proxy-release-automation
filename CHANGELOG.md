@@ -1,10 +1,15 @@
 # Vx.x.x (Pre-release)
 
 ## Release Highlights
+- Hello World
 
 ## Important Notes
 
 ## Breaking Changes
+- [#2133](https://github.com/oauth2-proxy/oauth2-proxy/pull/2133) Use X-Forwarded-Uri if it exists for pathRegex match
+- [#2028](https://github.com/oauth2-proxy/oauth2-proxy/pull/2028) Update golang.org/x/net to v0.7.0 ato address GHSA-vvpx-j8f3-3w6h
+- [#1873](https://github.com/oauth2-proxy/oauth2-proxy/pull/1873) Fix empty users with some OIDC providers (@babs)
+- [#1882](https://github.com/oauth2-proxy/oauth2-proxy/pull/1882) Make `htpasswd.GetUsers` racecondition safe
 
 # V7.5.0
 
